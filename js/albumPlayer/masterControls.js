@@ -34,11 +34,11 @@ export function createMasterControls(state, isMaster) {
 			state.isPlaying = false;
 		} else {
 			// Play - broadcast to all devices with synchronized start
-			const targetTime = Date.now() + 5000; // 5 seconds from now
+			const targetTime = Date.now() + 1000; // 5 seconds from now
 			sendToServer({
 				type: "play",
 				targetTime: targetTime,
-				delay: 5000,
+				delay: 1000,
 			});
 			// Local play will be triggered by the WebSocket response
 			// Play indicator will be shown by websocketHandlers when play actually starts

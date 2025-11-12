@@ -1,748 +1,359 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Télécommande</title>
-		<script src="/timesync/timesync.js"></script>
-		<style>
-			* {
-				box-sizing: border-box;
-			}
-
-			body {
-				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-					"Helvetica Neue", Arial, sans-serif;
-				max-width: 1400px;
-				margin: 0 auto;
-				padding: 30px 20px;
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				min-height: 100vh;
-			}
-
-			h1 {
-				color: white;
-				font-size: 2.5rem;
-				margin-bottom: 10px;
-				font-weight: 700;
-				text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-			}
-
-			h2 {
-				color: #333;
-				margin-top: 0;
-				margin-bottom: 20px;
-				font-size: 1.5rem;
-				font-weight: 600;
-				display: flex;
-				align-items: center;
-				gap: 10px;
-			}
-
-			.controls {
-				background: white;
-				padding: 30px;
-				border-radius: 16px;
-				box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-				margin-bottom: 25px;
-				border: 1px solid rgba(255, 255, 255, 0.2);
-			}
-
-			button {
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				border: none;
-				color: white;
-				padding: 14px 28px;
-				text-align: center;
-				text-decoration: none;
-				display: inline-block;
-				font-size: 15px;
-				font-weight: 600;
-				margin: 6px 4px;
-				cursor: pointer;
-				border-radius: 10px;
-				transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-				box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-				position: relative;
-				overflow: hidden;
-			}
-
-			button::before {
-				content: "";
-				position: absolute;
-				top: 0;
-				left: -100%;
-				width: 100%;
-				height: 100%;
-				background: rgba(255, 255, 255, 0.2);
-				transition: left 0.3s;
-			}
-
-			button:hover {
-				transform: translateY(-2px);
-				box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-			}
-
-			button:hover::before {
-				left: 100%;
-			}
-
-			button:active {
-				transform: translateY(0);
-				box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-			}
-
-			.clients-section {
-				background: white;
-				padding: 30px;
-				border-radius: 16px;
-				box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-				margin-bottom: 25px;
-				border: 1px solid rgba(255, 255, 255, 0.2);
-			}
-
-			.status {
-				display: inline-flex;
-				align-items: center;
-				gap: 6px;
-				padding: 6px 16px;
-				border-radius: 20px;
-				font-size: 13px;
-				font-weight: 600;
-				margin-left: 12px;
-				animation: pulse 2s ease-in-out infinite;
-			}
-
-			.status::before {
-				content: "";
-				width: 8px;
-				height: 8px;
-				border-radius: 50%;
-				display: inline-block;
-			}
-
-			.status.connected {
-				background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-				color: white;
-				box-shadow: 0 2px 8px rgba(56, 239, 125, 0.3);
-			}
-
-			.status.connected::before {
-				background: white;
-				box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
-			}
-
-			.status.disconnected {
-				background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
-				color: white;
-				box-shadow: 0 2px 8px rgba(235, 51, 73, 0.3);
-			}
-
-			.status.disconnected::before {
-				background: white;
-			}
-
-			@keyframes pulse {
-				0%,
-				100% {
-					opacity: 1;
-				}
-				50% {
-					opacity: 0.8;
-				}
-			}
-
-			#clientsList {
-				list-style: none;
-				padding: 0;
-				margin-top: 20px;
-			}
-
-			#clientsList li {
-				background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-				margin: 12px 0;
-				padding: 18px 20px;
-				border-radius: 12px;
-				border-left: 5px solid #667eea;
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-				transition: all 0.3s ease;
-				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-			}
-
-			#clientsList li:hover {
-				transform: translateX(5px);
-				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-			}
-
-			#clientsList li.commander {
-				border-left-color: #764ba2;
-				background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
-			}
-
-			#clientsList li.master {
-				border-left-color: #ff9800;
-				background: #fff3e0;
-				font-weight: bold;
-			}
-
-			.client-info {
-				flex-grow: 1;
-			}
-
-			.client-id {
-				font-weight: 700;
-				color: #2d3748;
-				font-size: 17px;
-				margin-bottom: 4px;
-			}
-
-			.client-time {
-				color: #718096;
-				font-size: 13px;
-				font-weight: 500;
-			}
-
-			.client-badge {
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				color: white;
-				padding: 6px 16px;
-				border-radius: 20px;
-				font-size: 12px;
-				font-weight: 600;
-				margin-left: 10px;
-				box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-			}
-
-			.client-badge.master {
-				background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-			}
-
-			.total-count {
-				display: inline-flex;
-				align-items: center;
-				justify-content: center;
-				min-width: 32px;
-				height: 32px;
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				color: white;
-				border-radius: 16px;
-				font-size: 14px;
-				font-weight: 700;
-				padding: 0 10px;
-				box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-			}
-
-			.empty-state {
-				text-align: center;
-				color: #a0aec0;
-				padding: 60px 40px;
-				font-style: italic;
-				font-size: 15px;
-				background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-				border-radius: 12px;
-				border: 2px dashed #cbd5e0;
-			}
-
-			.projects-section {
-				background: white;
-				padding: 30px;
-				border-radius: 16px;
-				box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-				margin-top: 25px;
-				border: 1px solid rgba(255, 255, 255, 0.2);
-			}
-
-			.projects-grid {
-				display: grid;
-				grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-				gap: 24px;
-				margin-top: 24px;
-			}
-
-			.project-card {
-				background: white;
-				border: 2px solid #e2e8f0;
-				border-radius: 16px;
-				padding: 0;
-				cursor: pointer;
-				transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-				text-align: center;
-				overflow: hidden;
-				position: relative;
-			}
-
-			.project-card::before {
-				content: "";
-				position: absolute;
-				top: 0;
-				left: 0;
-				right: 0;
-				height: 4px;
-				background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-				transform: scaleX(0);
-				transition: transform 0.3s;
-			}
-
-			.project-card:hover {
-				border-color: #667eea;
-				box-shadow: 0 12px 32px rgba(102, 126, 234, 0.2);
-				transform: translateY(-8px);
-			}
-
-			.project-card:hover::before {
-				transform: scaleX(1);
-			}
-
-			.project-card.selected {
-				border-color: #667eea;
-				background: linear-gradient(135deg, #f5f7ff 0%, #e8ebff 100%);
-				box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
-			}
-
-			.project-card.selected::before {
-				transform: scaleX(1);
-				height: 6px;
-			}
-
-			.project-thumb {
-				width: 100%;
-				height: 180px;
-				object-fit: cover;
-				margin-bottom: 0;
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				transition: transform 0.3s;
-			}
-
-			.project-card:hover .project-thumb {
-				transform: scale(1.05);
-			}
-
-			.project-name {
-				font-weight: 700;
-				font-size: 17px;
-				color: #2d3748;
-				margin: 16px 16px 12px;
-			}
-
-			.project-info {
-				font-size: 12px;
-				color: #718096;
-				line-height: 1.6;
-				padding: 0 16px 16px;
-				display: flex;
-				flex-wrap: wrap;
-				gap: 6px;
-				justify-content: center;
-			}
-
-			.media-badge {
-				display: inline-flex;
-				align-items: center;
-				gap: 4px;
-				padding: 4px 10px;
-				border-radius: 12px;
-				font-size: 11px;
-				font-weight: 600;
-				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-				transition: transform 0.2s;
-			}
-
-			.media-badge:hover {
-				transform: scale(1.05);
-			}
-
-			.media-badge.poster {
-				background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
-				color: white;
-			}
-
-			.media-badge.phone {
-				background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-				color: white;
-			}
-
-			.media-badge.music {
-				background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-				color: white;
-			}
-
-			.media-badge.billboard {
-				background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-				color: white;
-			}
-
-			.media-badge.album {
-				background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-				color: white;
-			}
-
-			#currentProjectInfo {
-				padding: 20px 24px;
-				margin: 20px 0;
-				background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
-				border-left: 5px solid #10b981;
-				border-radius: 12px;
-				box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-				animation: slideIn 0.3s ease-out;
-			}
-
-			@keyframes slideIn {
-				from {
-					opacity: 0;
-					transform: translateY(-10px);
-				}
-				to {
-					opacity: 1;
-					transform: translateY(0);
-				}
-			}
-
-			#currentProjectInfo strong {
-				color: #065f46;
-				font-size: 16px;
-			}
-
-			#currentProjectName {
-				color: #047857;
-				font-weight: 700;
-			}
-
-			#currentProjectInfo small {
-				color: #047857;
-				font-weight: 500;
-			}
-		</style>
-	</head>
-	<body>
-		<h1>Télécommande</h1>
-
-		<div class="controls">
-			<h2>
-				Contrôles
-				<span id="connectionStatus" class="status disconnected"
-					>Déconnecté</span
-				>
-			</h2>
-			<button id="play">▶ Play</button>
-			<button id="pause">⏸ Pause</button>
-			<button id="stop">⏹ Stop</button>
-			<button id="rewind">⏪ Rewind</button>
-			<button id="forward">⏩ Forward</button>
-			<button id="reload">🔄 Reload</button>
-		</div>
-
-		<div class="clients-section">
-			<h2>
-				Appareils connectés
-				<span id="clientCount" class="total-count">(0)</span>
-			</h2>
-			<ul id="clientsList">
-				<li class="empty-state">Aucun appareil connecté</li>
-			</ul>
-		</div>
-
-		<div class="projects-section">
-			<h2>
-				Projets disponibles
-				<span id="projectCount" class="total-count">(0)</span>
-			</h2>
-			<div
-				id="currentProjectInfo"
-				style="
-					display: none;
-					padding: 10px;
-					margin: 10px 0;
-					background: #e8f5e9;
-					border-left: 4px solid #4caf50;
-					border-radius: 4px;
-				"
-			>
-				<strong>🎬 Projet actif:</strong> <span id="currentProjectName"></span>
-				<br />
-				<small style="color: #666"
-					>Chaque appareil affiche sa vue configurée (poster, phone, billboard,
-					etc.)</small
-				>
-			</div>
-			<div id="projectsGrid" class="projects-grid">
-				<div class="empty-state">Chargement des projets...</div>
-			</div>
-		</div>
-	</body>
-	<script>
-		const ws = new WebSocket("ws://localhost:3000");
-		const connectionStatus = document.getElementById("connectionStatus");
-		const clientsList = document.getElementById("clientsList");
-		const clientCount = document.getElementById("clientCount");
-
-		ws.onopen = () => {
-			console.log("WebSocket connected");
-			connectionStatus.textContent = "Connecté";
-			connectionStatus.className = "status connected";
-
-			// Identify as commander to receive client updates
-			ws.send(JSON.stringify({ type: "identify", role: "commander" }));
-		};
-
-		ws.onclose = () => {
-			console.log("WebSocket disconnected");
-			connectionStatus.textContent = "Déconnecté";
-			connectionStatus.className = "status disconnected";
-		};
-
-		ws.onerror = (error) => {
-			console.error("WebSocket error:", error);
-			connectionStatus.textContent = "Erreur";
-			connectionStatus.className = "status disconnected";
-		};
-
-		ws.onmessage = (event) => {
-			const data = JSON.parse(event.data);
-			console.log("Received:", data);
-
-			if (data.type === "clientsUpdate") {
-				updateClientsList(data.clients, data.total);
-			}
-		};
-
-		function updateClientsList(clients, total) {
-			clientCount.textContent = `(${total})`;
-
-			if (clients.length === 0) {
-				clientsList.innerHTML =
-					'<li class="empty-state">Aucun appareil connecté</li>';
-				return;
-			}
-
-			// Sort clients: master first, then commanders, then by ID
-			clients.sort((a, b) => {
-				// Master devices first
-				if (a.isMaster !== b.isMaster) {
-					return a.isMaster ? -1 : 1;
-				}
-				// Then commanders
-				if (a.isCommander !== b.isCommander) {
-					return a.isCommander ? -1 : 1;
-				}
-				// Then by ID
-				return a.id - b.id;
-			});
-
-			clientsList.innerHTML = clients
-				.map((client) => {
-					const connectedTime = new Date(client.connectedAt);
-					const timeString = connectedTime.toLocaleTimeString("fr-FR");
-					const dateString = connectedTime.toLocaleDateString("fr-FR");
-
-					// Determine class and badges
-					let classes = [];
-					let badges = [];
-
-					if (client.isMaster) {
-						classes.push("master");
-						badges.push(
-							'<span class="client-badge master">🎵 MASTER (Audio Reference)</span>'
-						);
-					}
-					if (client.isCommander) {
-						classes.push("commander");
-						badges.push('<span class="client-badge">Commander</span>');
-					}
-
-					const classString = classes.join(" ");
-					const badgesString = badges.join("");
-
-					return `
-					<li class="${classString}">
-						<div class="client-info">
-							<div class="client-id">Appareil #${client.id}</div>
-							<div class="client-time">Connecté à ${timeString} le ${dateString}</div>
-						</div>
-						<div>
-							${badgesString}
-						</div>
-					</li>
-				`;
-				})
-				.join("");
-		}
-
-		const playButton = document.getElementById("play");
-		const pauseButton = document.getElementById("pause");
-		const stopButton = document.getElementById("stop");
-		const rewindButton = document.getElementById("rewind");
-		const forwardButton = document.getElementById("forward");
-		const reloadButton = document.getElementById("reload");
-
-		playButton.addEventListener("click", () => {
-			ws.send(JSON.stringify({ type: "play", video: "video-vertical" }));
-		});
-
-		pauseButton.addEventListener("click", () => {
-			ws.send(JSON.stringify({ type: "pause" }));
-		});
-
-		stopButton.addEventListener("click", () => {
-			ws.send(JSON.stringify({ type: "stop" }));
-		});
-
-		reloadButton.addEventListener("click", () => {
-			ws.send(JSON.stringify({ type: "reload" }));
-		});
-
-		// Load and display projects
-		let selectedProject = null;
-
-		async function loadProjects() {
-			try {
-				const response = await fetch("/api/media");
-				const data = await response.json();
-
-				const projectsGrid = document.getElementById("projectsGrid");
-				const projectCount = document.getElementById("projectCount");
-
-				if (!projectsGrid || !projectCount) {
-					console.log(
-						"Projects UI elements not found, skipping project display"
-					);
-					return;
-				}
-
-				const projects = data.summary.projects;
-				projectCount.textContent = `(${projects.length})`;
-
-				if (projects.length === 0) {
-					projectsGrid.innerHTML =
-						'<div class="empty-state">Aucun projet trouvé</div>';
-					return;
-				}
-
-				projectsGrid.innerHTML = projects
-					.map((project) => {
-						const thumbUrl = data.catalog[project.name].thumb
-							? data.catalog[project.name].thumb.url
-							: null;
-
-						const mediaBadges = [];
-						if (project.hasPoster)
-							mediaBadges.push(
-								'<span class="media-badge poster">Poster</span>'
-							);
-						if (project.hasPhone)
-							mediaBadges.push('<span class="media-badge phone">Phone</span>');
-						if (project.hasMusic)
-							mediaBadges.push('<span class="media-badge music">Music</span>');
-						if (project.hasBillboard)
-							mediaBadges.push(
-								'<span class="media-badge billboard">Billboard</span>'
-							);
-						if (project.hasAlbum)
-							mediaBadges.push('<span class="media-badge album">Album</span>');
-
-						return `
-							<div class="project-card" data-project="${project.name}">
-								${
-									thumbUrl
-										? `<img src="${thumbUrl}" alt="${project.name}" class="project-thumb" />`
-										: '<div class="project-thumb" style="display:flex;align-items:center;justify-content:center;color:#999;">No Thumbnail</div>'
-								}
-								<div class="project-name">${project.name}</div>
-								<div class="project-info">
-									${mediaBadges.join("")}
-								</div>
-							</div>
-						`;
-					})
-					.join("");
-
-				// Add click handlers
-				document.querySelectorAll(".project-card").forEach((card) => {
-					card.addEventListener("click", () => {
-						const projectName = card.getAttribute("data-project");
-						selectProject(projectName);
-					});
-				});
-			} catch (error) {
-				console.error("Error loading projects:", error);
-			}
-		}
-
-		async function selectProject(projectName) {
-			// Remove previous selection
-			document.querySelectorAll(".project-card").forEach((card) => {
-				card.classList.remove("selected");
-			});
-
-			// Add selection
-			const card = document.querySelector(`[data-project="${projectName}"]`);
-			if (card) {
-				card.classList.add("selected");
-				selectedProject = projectName;
-			}
-
-			// Send project selection to all clients
-			// Each client will use its own media type from URL parameter
-			try {
-				const response = await fetch(`/api/media/projects/${projectName}`);
-				const project = await response.json();
-
-				// Check what media types are available
-				const availableMedia = [];
-				if (project.poster && project.poster.length > 0)
-					availableMedia.push("poster");
-				if (project.phone && project.phone.length > 0)
-					availableMedia.push("phone");
-				if (project.billboard && project.billboard.length > 0)
-					availableMedia.push("billboard");
-				if (project.album && Object.keys(project.album).length > 0) {
-					availableMedia.push(`album/${Object.keys(project.album)[0]}`);
-				}
-
-				if (availableMedia.length === 0) {
-					alert("No media available for this project");
-					return;
-				}
-
-				// Use the first available media type as the "broadcast" source
-				// Each client will replace this with their own media type
-				const defaultMedia = availableMedia[0];
-				const source = `${projectName}/${defaultMedia}`;
-
-				console.log(`Selected project: ${projectName}`);
-				console.log(
-					`Broadcasting source: ${source} (clients will use their own media types)`
-				);
-
-				// Send via WebSocket to update all clients
-				if (ws.readyState === WebSocket.OPEN) {
-					ws.send(JSON.stringify({ type: "setSource", source: source }));
-
-					// Update UI to show current project
-					const projectInfo = document.getElementById("currentProjectInfo");
-					const projectNameSpan = document.getElementById("currentProjectName");
-					if (projectInfo && projectNameSpan) {
-						projectNameSpan.textContent = projectName;
-						projectInfo.style.display = "block";
-					}
-
-					// Show confirmation
-					console.log(
-						`✓ Project selected: ${projectName} | Available: ${availableMedia.join(
-							", "
-						)}`
-					);
-				} else {
-					alert("WebSocket not connected");
-				}
-			} catch (error) {
-				console.error("Error fetching project details:", error);
-				alert("Error loading project details");
-			}
-		}
-
-		// Load projects on page load
-		window.addEventListener("load", loadProjects);
-	</script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Media Player</title>
+
+    <!-- Swiper CSS -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css"
+    />
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        height: 100%;
+        width: 100%;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+        background-color: black;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+      }
+
+      .swiper {
+        pointer-events: all;
+
+        width: 100%;
+        height: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 0;
+      }
+
+      .swiper-slide {
+        text-align: center;
+        transition: transform 0.3s, box-shadow 0.3s;
+      }
+
+      .project-thumb {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1;
+
+        object-fit: cover;
+        margin-bottom: 10px;
+        background: #333;
+      }
+
+      .project-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .project-name {
+        font-weight: 700;
+        font-size: 16px;
+        margin-bottom: 6px;
+      }
+
+      .project-info .media-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        margin: 2px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      #currentProjectInfo {
+        padding: 16px;
+        margin: 20px 0;
+        background: rgba(16, 185, 129, 0.1);
+        border-left: 4px solid #10b981;
+        border-radius: 12px;
+        display: none;
+        color: #fff;
+      }
+
+      .projects-section {
+        pointer-events: none;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+      }
+
+      .controls {
+        pointer-events: all;
+        padding: 2rem;
+
+        display: flex;
+        flex-direction: column;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(
+          0deg,
+          rgba(0, 0, 0, 0.98) 0%,
+          rgba(0, 0, 0, 0.98) 33%,
+          rgba(0, 0, 0, 0) 100%
+        );
+        backdrop-filter: blur(3px);
+        width: 100%;
+        gap: 1rem;
+      }
+
+      .control-buttons {
+        display: flex;
+        flex-direction: row;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      .control-button {
+        width: 3rem;
+        height: 2rem;
+        color: white;
+        cursor: pointer;
+      }
+
+      .control-button img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .control-button button {
+        background: transparent;
+        width: 100%;
+        height: 100%;
+        color: white;
+        border: none;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+
+      .song-infos {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        color: white;
+      }
+
+      .song-timeline {
+        background-color: white;
+        height: 2px;
+        width: 100%;
+      }
+
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="projects-section">
+      <!-- Swiper container -->
+      <div class="swiper" id="projectsSwiper">
+        <div class="swiper-wrapper" id="projectsGrid">
+          <div class="swiper-slide empty-state">Chargement des projets...</div>
+        </div>
+      </div>
+
+      <!-- Control buttons -->
+
+      <div class="controls">
+        <div class="song-infos">
+          <div id="song-title" class="song-title"></div>
+          <div id="song-artist" class="song-artist"></div>
+          <div class="song-timeline"></div>
+        </div>
+        <div class="control-buttons">
+          <div class="control-button control-button-prev">
+            <img src="./assets/Back.svg" alt="" />
+          </div>
+          <div class="control-button">
+            <button id="play">
+              <img src="./assets/Play.svg" alt="" />
+            </button>
+            <button id="pause" class="hidden">
+              <img src="./assets/Pause.svg" alt="" />
+            </button>
+          </div>
+          <div class="control-button control-button-next">
+            <img src="./assets/Next.svg" alt="" />
+          </div>
+
+          <div class="hidden">
+            <button id="stop">⏹</button>
+            <button id="rewind">⏪</button>
+            <button id="forward">⏩</button>
+            <button id="reload">🔄</button>
+            <span id="connectionStatus" class="status disconnected"
+              >Déconnecté</span
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Swiper JS -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+
+    <script>
+      // Initialize Swiper
+      const swiper = new Swiper("#projectsSwiper", {
+        slidesPerView: 1,
+        spaceBetween: 0,
+        navigation: {
+          nextEl: ".control-button-next",
+          prevEl: ".control-button-prev",
+        },
+      });
+
+      // WebSocket and project loading code remains mostly unchanged
+      const ws = new WebSocket("ws://localhost:3000");
+      const connectionStatus = document.getElementById("connectionStatus");
+      const clientsList = document.getElementById("clientsList");
+      const clientCount = document.getElementById("clientCount");
+
+      ws.onopen = () => {
+        connectionStatus.textContent = "Connecté";
+        connectionStatus.className = "status connected";
+        ws.send(JSON.stringify({ type: "identify", role: "commander" }));
+      };
+      ws.onclose = () => {
+        connectionStatus.textContent = "Déconnecté";
+        connectionStatus.className = "status disconnected";
+      };
+      // ws.onmessage = (event) => {
+      // 	const data = JSON.parse(event.data);
+      // 	if (data.type === "clientsUpdate") updateClientsList(data.clients, data.total);
+      // };
+
+      // function updateClientsList(clients, total) {
+      // 	clientCount.textContent = total;
+      // 	if (clients.length === 0) {
+      // 		clientsList.innerHTML = '<li class="empty-state">Aucun appareil connecté</li>';
+      // 		return;
+      // 	}
+      // 	clientsList.innerHTML = clients.map(c => `
+      // 		<li>
+      // 			<div>Appareil #${c.id}</div>
+      // 			<div>${c.isMaster ? 'MASTER' : c.isCommander ? 'Commander' : ''}</div>
+      // 		</li>
+      // 	`).join('');
+      // }
+
+      const playButton = document.getElementById("play");
+      const pauseButton = document.getElementById("pause");
+      const stopButton = document.getElementById("stop");
+      const rewindButton = document.getElementById("rewind");
+      const forwardButton = document.getElementById("forward");
+      const reloadButton = document.getElementById("reload");
+
+      playButton.onclick = () =>
+        ws.send(JSON.stringify({ type: "play", video: "video-vertical" }));
+      pauseButton.onclick = () => ws.send(JSON.stringify({ type: "pause" }));
+      stopButton.onclick = () => ws.send(JSON.stringify({ type: "stop" }));
+      rewindButton.onclick = () => ws.send(JSON.stringify({ type: "rewind" }));
+      forwardButton.onclick = () =>
+        ws.send(JSON.stringify({ type: "forward" }));
+      reloadButton.onclick = () => ws.send(JSON.stringify({ type: "reload" }));
+
+      // Load projects
+      async function loadProjects() {
+        try {
+          const response = await fetch("/api/media");
+          const data = await response.json();
+		  console.log(data);
+          const projects = data.summary.projects || [];
+
+          const projectsGrid = document.getElementById("projectsGrid");
+
+          if (!projects.length) {
+            projectsGrid.innerHTML =
+              '<div class="swiper-slide empty-state">Aucun projet trouvé</div>';
+            return;
+          }
+
+          // Clear existing slides
+          projectsGrid.innerHTML = "";
+
+          projects.forEach((p) => {
+            const projectName = p.name;
+            const projectCatalog = data.catalog[projectName] || {};
+            console.log(data.catalog);
+
+            // Loop through albums
+            if (projectCatalog.phone) {
+              Object.keys(projectCatalog.phone).forEach((albumKey, index) => {
+                const albumMedia = projectCatalog.phone[albumKey];
+
+                // Create a slide for each album media (name + video only)
+                const slideHTML = `
+                <div class="swiper-slide project-card" data-project="${projectName}" data-album="${albumKey}" data-index="${index}">
+                  <video class="project-video" muted loop autoplay>
+                    <source src="${albumMedia.url}" type="video/mp4">
+                  </video>
+                  <div class="project-name">${projectName} - Album ${albumKey}</div>
+                </div>
+              `;
+                projectsGrid.insertAdjacentHTML("beforeend", slideHTML);
+              });
+
+              document.getElementById("song-title").textContent = projectName;
+              document.getElementById("song-artist").textContent = projectName;
+            }
+          });
+
+          // Optional: click handler if you want to track selected album
+          document.querySelectorAll(".project-card").forEach((card) => {
+            console.log("clickkkk");
+            card.onclick = () => {
+				console.log(card)
+              const projectName = card.dataset.project;
+              const albumKey = card.dataset.album;
+              const index = card.dataset.index;
+              selectAlbum(projectName, albumKey, index);
+            };
+          });
+
+          swiper.update();
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      let selectedProject = null;
+
+      async function selectAlbum(projectName, albumKey, index) {
+        console.log("select album", projectName, albumKey, index);
+        selectedProject = projectName;
+        document.getElementById("song-title").textContent = projectName;
+        document.getElementById("song-artist").textContent = projectName;
+
+        // Send project selection via WebSocket
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "setSource", source: projectName }));
+        }
+      }
+
+      window.onload = loadProjects;
+    </script>
+  </body>
 </html>

@@ -69,6 +69,8 @@ async function main() {
 
     // Initialize Swiper
     swiper = new Swiper(".swiper", {
+      initialSlide: 0,
+      centeredSlides: true,
       effect: "coverflow",
       loop: true,
       slidesPerView: 3,
@@ -88,11 +90,15 @@ async function main() {
         prevEl: ".swiper-button-prev",
       },
       on: {
+        init() {
+          playActiveSlideVideo(this);
+        },
         slideChange() {
-          state.currentSlideIndex = this.realIndex;
-          playIndicator.update();
-          // Optionally send over WebSocket
-          API?.sendSlideChange?.(state.currentSlideIndex);
+          playActiveSlideVideo(this);
+          if (isMaster) {
+            // use realIndex so slave devices center the same logical slide
+            API?.sendSlideChange?.(this.realIndex);
+          }
         },
       },
     });
@@ -103,6 +109,25 @@ async function main() {
   } catch (error) {
     console.error("Initialization failed:", error);
     alert(`Failed to load album videos: ${error.message}`);
+  }
+}
+
+function playActiveSlideVideo(swiper) {
+  // Pause all videos and reset
+  swiper.slides.forEach((slide) => {
+    const video = slide.querySelector("video");
+    if (video) {
+      video.pause();
+      video.currentTime = 0;
+    }
+  });
+
+  // Play only the active slide
+  const activeVideo = swiper.slides[swiper.activeIndex].querySelector("video");
+  if (activeVideo) {
+    activeVideo.play().catch((err) => {
+      console.warn("Video play prevented by browser:", err);
+    });
   }
 }
 

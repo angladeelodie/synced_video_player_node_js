@@ -274,7 +274,7 @@ wss.on("connection", (ws, req) => {
 					break;
 				case "play":
 					// Use targetTime from client if provided, otherwise calculate
-					const targetTime = data.targetTime || Date.now() + 5000;
+					const targetTime = data.targetTime || Date.now() + 1000;
 
 					// Broadcast play command to all clients with target time (excluding commanders)
 					broadcast(
@@ -282,7 +282,7 @@ wss.on("connection", (ws, req) => {
 							type: "play",
 							video: data.video || "video-vertical",
 							targetTime: targetTime,
-							delay: data.delay || 5000,
+							delay: data.delay || 1000,
 						},
 						true
 					);
