@@ -1,134 +1,109 @@
-import * as THREE from "three";
+import Swiper from "swiper";
 import { api } from "../api/api.js";
 import { messageManager } from "../components/messageManager.js";
 import { getParamsFromUrl } from "../utils.js";
-import {
-	setupLighting,
-	setupBackground,
-	setupCamera,
-	setupRenderer,
-} from "./sceneSetup.js";
 import { loadAlbumsPhonesDatas } from "./loadAlbumsPhonesDatas.js";
-import { createSlideManager } from "./slideManager.js";
-import { createCarouselController } from "./carouselController.js";
-import { createInputHandlers } from "./inputHandlers.js";
 import { createWebSocketHandlers } from "./websocketHandlers.js";
 import { createMasterControls } from "./masterControls.js";
 import { createPlayIndicator } from "./playIndicator.js";
 
-function main() {
-	const { isMaster } = getParamsFromUrl(window.location.href);
+async function main() {
+  const { isMaster } = getParamsFromUrl(window.location.href);
 
-	// State
-	const state = {
-		slides: [],
-		albumData: [],
-		currentSlideIndex: 0,
-		numSlides: 0,
-		isPlaying: false,
-		playTimeoutId: null,
-		playbackStartTime: null,
-		isDragging: false,
-		dragStartX: 0,
-		dragScrollStart: 0,
-	};
+  // State
+  const state = {
+    slides: [],
+    albumData: [],
+    currentSlideIndex: 0,
+    numSlides: 0,
+    isPlaying: false,
+  };
 
-	// Scene setup
-	const scene = new THREE.Scene();
-	scene.background = new THREE.Color(0x222222);
-	const camera = setupCamera();
-	const renderer = setupRenderer();
+  // Create WebSocket + Play indicator (if you need them)
+  const playIndicator = createPlayIndicator();
+  const MESSAGE_MANAGER = messageManager();
+  let masterControls = null;
+  let API = null;
 
-	const container = document.getElementById("container") || document.body;
-	container.appendChild(renderer.domElement);
+  try {
+    // Load the album/phone data
+    const urlParams = getParamsFromUrl(window.location.href);
+    const mediaTypes = urlParams.media || "album"; // e.g. ?media=album,phone
+    state.albumData = await loadAlbumsPhonesDatas(mediaTypes);
+    state.numSlides = state.albumData.length;
 
-	const slider = document.querySelector("input#rangeSlider");
+    // Build the Swiper DOM slides
+    const swiperWrapper = document.querySelector(".swiper-wrapper");
+    swiperWrapper.innerHTML = ""; // clear
 
-	// Controllers
-	const slideManager = createSlideManager(state, scene, isMaster);
-	const carouselController = createCarouselController(state);
-	const playIndicator = createPlayIndicator();
-	let masterControls = null;
+    state.albumData.forEach((item, i) => {
+      console.log(item);
+      const slide = document.createElement("div");
+      slide.classList.add("swiper-slide");
 
-	// Render loop
-	function onResize() {
-		renderer.setSize(window.innerWidth, window.innerHeight);
-		camera.aspect = window.innerWidth / window.innerHeight;
-		camera.updateProjectionMatrix();
-	}
+      // Example — depends on your item structure
+      // Assuming item has .title, .thumbnail, .videoUrl, etc.
+      slide.innerHTML = `
+        <div class="slide-content">
+        <video width="320" height="320" loop muted playsinline autoplay>
+		  <source src="${item.video_url}" type="video/mp4">
+		  Your browser does not support the video tag.
+		</video>
+        </div>
+      `;
+      swiperWrapper.appendChild(slide);
+    });
 
-	function tick() {
-		playIndicator.update(); // Update play indicator frame counter
-		renderer.render(scene, camera);
-		requestAnimationFrame(tick);
-	}
+    let swiper;
 
-	const inputHandlers = createInputHandlers(
-		state,
-		slider,
-		renderer,
-		carouselController.moveSlide,
-		onResize,
-		() => API,
-		isMaster
-	);
+    // Setup optional master controls / WS communication
+    const websocketHandlers = createWebSocketHandlers(
+      state,
+      (index) => swiper.slideToLoop(index), // Move Swiper instead of 3D carousel
+      () => API,
+      MESSAGE_MANAGER,
+      () => masterControls?.updatePlayPauseButton(),
+      null,
+      playIndicator
+    );
 
-	const MESSAGE_MANAGER = messageManager();
-	let API = null;
+    // Initialize Swiper
+    swiper = new Swiper(".swiper", {
+      effect: "coverflow",
+      loop: true,
+      slidesPerView: 3,
+      coverflowEffect: {
+        rotate: 30,
+        stretch: 100,
+        depth: 10,
+        modifier: 1,
+        slideShadows: true,
+      },
+      pagination: {
+        el: ".swiper-pagination",
+        clickable: true,
+      },
+      navigation: {
+        nextEl: ".swiper-button-next",
+        prevEl: ".swiper-button-prev",
+      },
+      on: {
+        slideChange() {
+          state.currentSlideIndex = this.realIndex;
+          playIndicator.update();
+          // Optionally send over WebSocket
+          API?.sendSlideChange?.(state.currentSlideIndex);
+        },
+      },
+    });
 
-	const websocketHandlers = createWebSocketHandlers(
-		state,
-		carouselController.moveSlide,
-		() => API,
-		MESSAGE_MANAGER,
-		() => masterControls?.updatePlayPauseButton(),
-		null, // No sync manager
-		playIndicator
-	);
-
-	// Initialization
-	async function init() {
-		try {
-			const { pointLight, ambientLight } = setupLighting();
-			scene.add(pointLight);
-			scene.add(ambientLight);
-
-			// Get media type from URL params (e.g., ?media=album or ?media=album,phone)
-			const urlParams = getParamsFromUrl(window.location.href);
-			const mediaTypes = urlParams.media || "album"; // Default to album only
-
-			state.albumData = await loadAlbumsPhonesDatas(mediaTypes);
-			state.numSlides = state.albumData.length;
-
-			slideManager.createSlides(state.albumData);
-
-			const background = setupBackground();
-			if (background) scene.add(background);
-
-			const initialIndex = slideManager.initializeSlides();
-			carouselController.moveSlide(initialIndex);
-			slider.max = "1";
-			slider.step = "0.001";
-			slider.value = initialIndex / (state.numSlides - 1);
-
-			inputHandlers.setup();
-
-			// Setup master controls after everything is loaded
-			masterControls = createMasterControls(state, isMaster);
-			masterControls.setup(inputHandlers.sendToServer, playIndicator);
-
-			onResize();
-			tick();
-		} catch (error) {
-			console.error("Initialization failed:", error);
-			alert(`Failed to load album videos: ${error.message}`);
-		}
-	}
-
-	API = api(websocketHandlers.createMessageHandler(), isMaster);
-	init();
+    API = api(websocketHandlers.createMessageHandler(), isMaster);
+    masterControls = createMasterControls(state, isMaster);
+    masterControls.setup(() => API, playIndicator);
+  } catch (error) {
+    console.error("Initialization failed:", error);
+    alert(`Failed to load album videos: ${error.message}`);
+  }
 }
 
-window.onload = () => {
-	main();
-};
+window.addEventListener("DOMContentLoaded", main);

@@ -1,171 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Album Player</title>
-		<script type="importmap">
-			{
-				"imports": {
-					"three": "/node_modules/three/build/three.module.js",
-					"gsap": "/node_modules/gsap/index.js"
-				}
-			}
-		</script>
-		<style>
-			* {
-				margin: 0;
-				padding: 0;
-				box-sizing: border-box;
-			}
-			body {
-				overflow: hidden;
-				background: #000;
-				font-family: Arial, sans-serif;
-			}
-			canvas {
-				display: block;
-			}
-			#container {
-				width: 100vw;
-				height: 100vh;
-			}
+  <head>
+    <link rel="stylesheet" href="/node_modules/swiper/swiper-bundle.min.css" />
 
-			#rangeSlider {
-				position: fixed;
-				bottom: 30px;
-				left: 50%;
-				transform: translateX(-50%);
-				width: 80%;
-				max-width: 600px;
-				height: 8px;
-				-webkit-appearance: none;
-				appearance: none;
-				background: rgba(255, 255, 255, 0.2);
-				outline: none;
-				border-radius: 5px;
-				z-index: 1000;
-			}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Album Player</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "swiper": "/node_modules/swiper/swiper-bundle.mjs"
+        }
+      }
+    </script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+	  html{
+	  	height: 100%;
+		width: 100%;
+	  }
+      body {
+	  	width: 100%;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+        overflow: hidden;
+        background: #838383;
+      }
+      canvas {
+        display: block;
+      }
+      #container {
+        width: 100vw;
+        height: auto;
+		overflow: visible;
+      }
 
-			#rangeSlider::-webkit-slider-thumb {
-				-webkit-appearance: none;
-				appearance: none;
-				width: 20px;
-				height: 20px;
-				background: #fff;
-				cursor: pointer;
-				border-radius: 50%;
-				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-			}
+      #rangeSlider {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80%;
+        max-width: 600px;
+        height: 8px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: rgba(255, 255, 255, 0.2);
+        outline: none;
+        border-radius: 5px;
+        z-index: 1000;
+      }
 
-			#rangeSlider::-moz-range-thumb {
-				width: 20px;
-				height: 20px;
-				background: #fff;
-				cursor: pointer;
-				border-radius: 50%;
-				border: none;
-				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-			}
+      #rangeSlider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        background: #fff;
+        cursor: pointer;
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
 
-			#message {
-				position: fixed;
-				top: 20px;
-				left: 50%;
-				transform: translateX(-50%);
-				background: rgba(0, 0, 0, 0.8);
-				color: white;
-				padding: 15px 30px;
-				border-radius: 8px;
-				font-size: 16px;
-				z-index: 2000;
-				opacity: 0;
-				transition: opacity 0.3s ease;
-				pointer-events: none;
-			}
+      #rangeSlider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        background: #fff;
+        cursor: pointer;
+        border-radius: 50%;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
 
-			#message.show {
-				opacity: 1;
-			}
+      #message {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 15px 30px;
+        border-radius: 8px;
+        font-size: 16px;
+        z-index: 2000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+      }
 
-			#masterControls {
-				position: fixed;
-				top: 30px;
-				right: 30px;
-				display: none;
-				flex-direction: column;
-				gap: 10px;
-				z-index: 100000;
-			}
+      #message.show {
+        opacity: 1;
+      }
 
-			#masterControls.show {
-				display: flex;
-			}
+      #masterControls {
+        position: fixed;
+        top: 30px;
+        right: 30px;
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 100000;
+      }
 
-			#masterControls button {
-				background: rgba(255, 255, 255, 0.9);
-				border: none;
-				padding: 12px 24px;
-				font-size: 16px;
-				font-weight: bold;
-				border-radius: 8px;
-				cursor: pointer;
-				transition: all 0.2s ease;
-				color: #000;
-			}
+      #masterControls.show {
+        display: flex;
+      }
 
-			#masterControls button:hover {
-				background: #fff;
-				transform: scale(1.05);
-			}
+      #masterControls button {
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        padding: 12px 24px;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: #000;
+      }
 
-			#masterControls button:active {
-				transform: scale(0.95);
-			}
+      #masterControls button:hover {
+        background: #fff;
+        transform: scale(1.05);
+      }
 
-			#playPauseBtn {
-				background: rgba(76, 175, 80, 0.9);
-				color: white;
-			}
+      #masterControls button:active {
+        transform: scale(0.95);
+      }
 
-			#playPauseBtn:hover {
-				background: rgb(76, 175, 80);
-			}
+      #playPauseBtn {
+        background: rgba(76, 175, 80, 0.9);
+        color: white;
+      }
 
-			#playPauseBtn.playing {
-				background: rgba(244, 67, 54, 0.9);
-			}
+      #playPauseBtn:hover {
+        background: rgb(76, 175, 80);
+      }
 
-			#playPauseBtn.playing:hover {
-				background: rgb(244, 67, 54);
-			}
+      #playPauseBtn.playing {
+        background: rgba(244, 67, 54, 0.9);
+      }
 
-			#resetBtn {
-				background: rgba(33, 150, 243, 0.9);
-				color: white;
-			}
+      #playPauseBtn.playing:hover {
+        background: rgb(244, 67, 54);
+      }
 
-			#resetBtn:hover {
-				background: rgb(33, 150, 243);
-			}
-		</style>
-	</head>
-	<body>
-		<input
-			type="range"
-			id="rangeSlider"
-			min="0"
-			max="1"
-			step="0.001"
-			value="0"
-		/>
-		<div id="container"></div>
-		<div id="message"></div>
-		<div id="masterControls">
-			<button id="playPauseBtn">▶ Play</button>
-			<button id="resetBtn">⏮ Reset</button>
-		</div>
-		<script src="/node_modules/timesync/dist/timesync.js"></script>
-		<script src="./js/albumPlayer/albumPlayer.js" type="module"></script>
-	</body>
+      #resetBtn {
+        background: rgba(33, 150, 243, 0.9);
+        color: white;
+      }
+
+      #resetBtn:hover {
+        background: rgb(33, 150, 243);
+      }
+
+      /* .swiper-wrapper {
+		width: 100%;
+		height: 5;
+	  } */
+
+      .swiper-slide {
+        background: #ccc;
+        aspect-ratio: 1 / 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .slide-content video {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+      }
+
+      .swiper-slide-shadow-left,
+      .swiper-slide-shadow-right {
+        height: 100% !important; /* make shadow match the slide height */
+        top: 0 !important;
+        bottom: auto !important;
+        border-radius: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <input
+      type="range"
+      id="rangeSlider"
+      min="0"
+      max="1"
+      step="0.001"
+      value="0"
+    />
+    <div class="swiper" id="container">
+      <div class="swiper-wrapper">
+        <!-- Slides will be injected here -->
+      </div>
+
+      <!-- Optional controls -->
+      <div class="swiper-pagination"></div>
+      <div class="swiper-button-next"></div>
+      <div class="swiper-button-prev"></div>
+    </div>
+    <div id="message"></div>
+    <div id="masterControls">
+      <button id="playPauseBtn">▶ Play</button>
+      <button id="resetBtn">⏮ Reset</button>
+    </div>
+
+    <script src="/node_modules/timesync/dist/timesync.js"></script>
+    <script src="./js/albumPlayer/albumPlayer.js" type="module"></script>
+  </body>
 </html>
